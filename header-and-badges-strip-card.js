@@ -3,7 +3,7 @@ const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
 console.info(
-  `%c HEADER AND BADGES STRIP CARD %c v4.0.5 `,
+  `%c HEADER AND BADGES STRIP CARD %c v4.0.6 `,
   "color: orange; font-weight: bold; background: black",
   "color: white; font-weight: bold; background: dimgray"
 );
@@ -44,6 +44,10 @@ class HeaderAndBadgesStripCard extends LitElement {
   }
 
   static getConfigElement() {
+    // Lazy load editor: only register when user clicks edit
+    if (!customElements.get("header-and-badges-strip-card-editor")) {
+      customElements.define("header-and-badges-strip-card-editor", HeaderAndBadgesStripCardEditor);
+    }
     return document.createElement("header-and-badges-strip-card-editor");
   }
 
@@ -503,6 +507,7 @@ class HeaderAndBadgesStripCard extends LitElement {
   `;
 }
 
+// Editor class definition - will be registered on-demand via getConfigElement()
 class HeaderAndBadgesStripCardEditor extends LitElement {
   static properties = { hass: {}, _config: {}, _sel: { type: Number }, _tab: { type: String } };
 
@@ -851,5 +856,6 @@ class HeaderAndBadgesStripCardEditor extends LitElement {
   `;
 }
 
+// Register main card immediately
 customElements.define("header-and-badges-strip-card", HeaderAndBadgesStripCard);
-customElements.define("header-and-badges-strip-card-editor", HeaderAndBadgesStripCardEditor);
+// Editor will be registered lazily via getConfigElement()
