@@ -61,10 +61,6 @@ class HeaderAndBadgesStripCard extends LitElement {
     this._scrollbarResizeObserver = null;
   }
 
-  _normalizeEntity(e) {
-    return typeof e === 'string' ? { entity: e } : e;
-  }
-
   _getEntityId(e) {
     return typeof e === "string" ? e : e.entity;
   }
@@ -77,8 +73,6 @@ class HeaderAndBadgesStripCard extends LitElement {
     const scroll = c.scroll || {};
     const appearance = c.appearance || {};
     const colors = c.colors || {};
-
-    this._parsedConfig = { title, scroll, appearance, colors };
 
     this._config = {
       entities: c.entities,
@@ -150,7 +144,9 @@ class HeaderAndBadgesStripCard extends LitElement {
       } else {
         setTimeout(() => this._setupSidebarObserver(), 1000);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Header-and-Badges-Strip-Card: Sidebar observer setup failed', e);
+    }
   }
 
   _setupScrollbarObserver() {
@@ -162,7 +158,9 @@ class HeaderAndBadgesStripCard extends LitElement {
         this._updateScrollbarWidth();
       });
       this._scrollbarResizeObserver.observe(document.documentElement);
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Header-and-Badges-Strip-Card: Scrollbar observer setup failed', e);
+    }
   }
 
   _updateScrollbarWidth() {
@@ -174,7 +172,9 @@ class HeaderAndBadgesStripCard extends LitElement {
         this._scrollbarWidth = scrollbarWidth;
         this.requestUpdate();
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Header-and-Badges-Strip-Card: Scrollbar width update failed', e);
+    }
   }
 
   _updateSidebarWidth(sidebar) {
@@ -185,7 +185,9 @@ class HeaderAndBadgesStripCard extends LitElement {
         this._sidebarWidth = width;
         this.requestUpdate();
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Header-and-Badges-Strip-Card: Sidebar width update failed', e);
+    }
   }
 
   _debouncedResize() {
@@ -472,10 +474,7 @@ class HeaderAndBadgesStripCard extends LitElement {
     .header-badges-wrapper.full-width ha-card { width: 100% !important; max-width: 100% !important; }
     ha-card { overflow: hidden; border-radius: var(--radius, 0); height: var(--height, auto); width: 100%; display: flex; flex-direction: column; }
     ha-card.custom-width { flex-shrink: 0; }
-    .pad-md { padding: 12px 16px; }
-    .pad-sm { padding: 12px; }
-    .header { font-size: 16px; font-weight: 400; color: var(--primary-text-color); display: flex; align-items: center; gap: 0; }
-    .header { padding: 16px; }
+    .header { font-size: 16px; font-weight: 400; color: var(--primary-text-color); display: flex; align-items: center; gap: 0; padding: 16px; }
     .title { flex: 0 1 auto; font-size: var(--title-font, 16px); min-width: 0; }
     .title p { margin: 0 0 0.5em 0; line-height: 1.4; }
     .title p:last-child { margin-bottom: 0; }
@@ -823,8 +822,7 @@ class HeaderAndBadgesStripCardEditor extends LitElement {
   static styles = css`
     .config { display: flex; flex-direction: column; }
     .tabs { display: flex; border-bottom: 2px solid var(--divider-color); background: var(--card-background-color); }
-    .tab { background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; cursor: pointer; font-size: 14px; color: var(--primary-text-color); transition: all .2s; white-space: nowrap; flex-shrink: 0; }
-    .tab { padding: 12px 16px; }
+    .tab { background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; cursor: pointer; font-size: 14px; color: var(--primary-text-color); transition: all .2s; white-space: nowrap; flex-shrink: 0; padding: 12px 16px; }
     .tab:hover { background: var(--secondary-background-color); }
     .tab.active { border-bottom-color: var(--primary-color); color: var(--primary-color); font-weight: 500; }
     .content { flex: 1; overflow-y: auto; }
@@ -839,18 +837,15 @@ class HeaderAndBadgesStripCardEditor extends LitElement {
     ha-formfield { display: block; margin: 12px 0; padding: 8px 0; }
     .empty { text-align: center; padding: 24px; color: var(--secondary-text-color); }
     .entity { border: 1px solid var(--divider-color); border-radius: 8px; margin: 12px 0; overflow: hidden; background: var(--card-background-color); }
-    .entity-head { display: flex; justify-content: space-between; align-items: center; background: var(--secondary-background-color); user-select: none; font-weight: 500; }
-    .entity-head { padding: 12px 16px; }
+    .entity-head { display: flex; justify-content: space-between; align-items: center; background: var(--secondary-background-color); user-select: none; font-weight: 500; padding: 12px 16px; }
     .entity-head span { flex: 1; cursor: pointer; }
     .entity-head:hover span { color: var(--primary-color); }
     .controls { display: flex; gap: 4px; }
     .entity-edit { padding: 16px; border-top: 1px solid var(--divider-color); }
-    .preview { background: var(--secondary-background-color); border-radius: 4px; display: flex; gap: 8px; align-items: center; font-size: 14px; }
-    .preview { padding: 8px 12px; margin-bottom: 12px; }
+    .preview { background: var(--secondary-background-color); border-radius: 4px; display: flex; gap: 8px; align-items: center; font-size: 14px; padding: 8px 12px; margin-bottom: 12px; }
     .preview span { color: var(--secondary-text-color); }
     .preview b { color: var(--primary-color); }
-    .visibility { background: var(--secondary-background-color); border-radius: 8px; }
-    .visibility { padding: 12px; margin-bottom: 12px; }
+    .visibility { background: var(--secondary-background-color); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
     .vis-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 500; }
     mwc-button { margin-top: 16px; width: 100%; }
   `;
