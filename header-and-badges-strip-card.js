@@ -3,7 +3,7 @@ const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
 console.info(
-  `%c HEADER AND BADGES STRIP CARD %c v4.0.4 `,
+  `%c HEADER AND BADGES STRIP CARD %c v4.0.5 `,
   "color: orange; font-weight: bold; background: black",
   "color: white; font-weight: bold; background: dimgray"
 );
@@ -31,6 +31,7 @@ class HeaderAndBadgesStripCard extends LitElement {
     hass: { type: Object },
     _config: { type: Object },
     _sidebarWidth: { type: Number },
+    _scrollbarWidth: { type: Number },
   };
 
   static getStubConfig() {
@@ -51,7 +52,9 @@ class HeaderAndBadgesStripCard extends LitElement {
     this._cache = { animation: null, templates: new Map() };
     this._debounceTimer = null;
     this._sidebarWidth = 0;
+    this._scrollbarWidth = 0;
     this._sidebarResizeObserver = null;
+    this._scrollbarResizeObserver = null;
   }
 
   _normalizeEntity(e) {
@@ -116,12 +119,14 @@ class HeaderAndBadgesStripCard extends LitElement {
     super.connectedCallback();
     this._resizeObserver = new ResizeObserver(() => this._debouncedResize());
     this._setupSidebarObserver();
+    this._setupScrollbarObserver();
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     this._resizeObserver?.disconnect();
     this._sidebarResizeObserver?.disconnect();
+    this._scrollbarResizeObserver?.disconnect();
     clearTimeout(this._debounceTimer);
   }
 
@@ -140,6 +145,30 @@ class HeaderAndBadgesStripCard extends LitElement {
         this._sidebarResizeObserver.observe(sidebar);
       } else {
         setTimeout(() => this._setupSidebarObserver(), 1000);
+      }
+    } catch (e) {}
+  }
+
+  _setupScrollbarObserver() {
+    try {
+      this._updateScrollbarWidth();
+      
+      // Überwache Änderungen am documentElement (wenn Scrollbar erscheint/verschwindet)
+      this._scrollbarResizeObserver = new ResizeObserver(() => {
+        this._updateScrollbarWidth();
+      });
+      this._scrollbarResizeObserver.observe(document.documentElement);
+    } catch (e) {}
+  }
+
+  _updateScrollbarWidth() {
+    try {
+      // Berechne Scrollbar-Breite: Differenz zwischen window.innerWidth und clientWidth
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      
+      if (scrollbarWidth !== this._scrollbarWidth) {
+        this._scrollbarWidth = scrollbarWidth;
+        this.requestUpdate();
       }
     } catch (e) {}
   }
@@ -172,7 +201,7 @@ class HeaderAndBadgesStripCard extends LitElement {
   }
 
   updated(changedProps) {
-    if (changedProps.has('_config') || changedProps.has('_sidebarWidth')) {
+    if (changedProps.has('_config') || changedProps.has('_sidebarWidth') || changedProps.has('_scrollbarWidth')) {
       this._cache.animation = null;
       requestAnimationFrame(() => this._updateScroll());
     }
@@ -241,6 +270,7 @@ class HeaderAndBadgesStripCard extends LitElement {
   shouldUpdate(changedProps) {
     if (changedProps.has('_config')) return true;
     if (changedProps.has('_sidebarWidth')) return true;
+    if (changedProps.has('_scrollbarWidth')) return true;
     if (changedProps.has('hass')) {
       const old = changedProps.get('hass');
       if (!old) return true;
@@ -367,7 +397,7 @@ class HeaderAndBadgesStripCard extends LitElement {
       this._config.badge_style && 'chips'].filter(Boolean).join(' ');
 
     return html`
-      <div class="header-badges-wrapper ${this._config.full_width ? 'full-width' : ''}" style="${this._config.full_width ? `--sidebar-width: ${this._sidebarWidth}px;` : ''} margin-bottom: ${this._config.card_bottom_margin};">
+      <div class="header-badges-wrapper ${this._config.full_width ? 'full-width' : ''}" style="${this._config.full_width ? `--sidebar-width: ${this._sidebarWidth}px; --scrollbar-width: ${this._scrollbarWidth}px;` : ''} margin-bottom: ${this._config.card_bottom_margin};">
         <ha-card class="${this._config.card_width !== '100%' && !this._config.full_width ? 'custom-width' : ''}" style="
           --font: ${this._config.font_size}; --radius: ${this._config.border_radius}; --height: ${this._config.card_height};
           --content-color: ${this._config.content_color}; --label-color: ${this._config.label_color}; --chip-bg: ${this._config.chip_background};
@@ -433,7 +463,7 @@ class HeaderAndBadgesStripCard extends LitElement {
     .header-badges-wrapper.full-width { 
       position: relative;
       margin-left: calc(-50vw + 50% + var(--sidebar-width, 256px) / 2);
-      width: calc(100vw - var(--sidebar-width, 256px));
+      width: calc(100vw - var(--sidebar-width, 256px) - var(--scrollbar-width, 0px));
     }
     .header-badges-wrapper.full-width ha-card { width: 100% !important; max-width: 100% !important; }
     ha-card { overflow: hidden; border-radius: var(--radius, 0); height: var(--height, auto); width: 100%; display: flex; flex-direction: column; }
