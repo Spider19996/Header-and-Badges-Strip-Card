@@ -44,7 +44,6 @@ class HeaderAndBadgesStripCard extends LitElement {
   }
 
   static getConfigElement() {
-    // Lazy load editor: only register when user clicks edit
     if (!customElements.get("header-and-badges-strip-card-editor")) {
       customElements.define("header-and-badges-strip-card-editor", HeaderAndBadgesStripCardEditor);
     }
@@ -153,7 +152,6 @@ class HeaderAndBadgesStripCard extends LitElement {
     try {
       this._updateScrollbarWidth();
       
-      // Überwache Änderungen am documentElement (wenn Scrollbar erscheint/verschwindet)
       this._scrollbarResizeObserver = new ResizeObserver(() => {
         this._updateScrollbarWidth();
       });
@@ -851,6 +849,4 @@ class HeaderAndBadgesStripCardEditor extends LitElement {
   `;
 }
 
-// Register main card immediately
 customElements.define("header-and-badges-strip-card", HeaderAndBadgesStripCard);
-// Editor will be registered lazily via getConfigElement()
