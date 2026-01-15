@@ -3,7 +3,7 @@ const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
 console.info(
-  `%c HEADER AND BADGES STRIP CARD %c v4.0.7 `,
+  `%c HEADER AND BADGES STRIP CARD %c v4.0.8 `,
   "color: orange; font-weight: bold; background: black",
   "color: white; font-weight: bold; background: dimgray"
 );
@@ -61,8 +61,9 @@ class HeaderAndBadgesStripCard extends LitElement {
     this._dragState = {
       isDragging: false,
       startX: 0,
-      startScrollLeft: 0,
-      isPaused: false,
+      currentTranslate: 0,
+      prevTranslate: 0,
+      animationFrameId: null,
       pauseTimeout: null
     };
   }
@@ -134,6 +135,9 @@ class HeaderAndBadgesStripCard extends LitElement {
     this._scrollbarResizeObserver?.disconnect();
     clearTimeout(this._debounceTimer);
     clearTimeout(this._dragState.pauseTimeout);
+    if (this._dragState.animationFrameId) {
+      cancelAnimationFrame(this._dragState.animationFrameId);
+    }
   }
 
   _setupSidebarObserver() {
@@ -222,6 +226,19 @@ class HeaderAndBadgesStripCard extends LitElement {
     }
   }
 
+  _getCurrentTransform(element) {
+    const style = window.getComputedStyle(element);
+    const matrix = style.transform || style.webkitTransform;
+    
+    if (matrix === 'none' || !matrix) return 0;
+    
+    const matrixValues = matrix.match(/matrix.*\((.+)\)/);
+    if (!matrixValues) return 0;
+    
+    const values = matrixValues[1].split(', ');
+    return parseFloat(values[4]) || 0;
+  }
+
   _setupDragHandlers() {
     const wrap = this.shadowRoot.querySelector('.ticker-wrap');
     const move = this.shadowRoot.querySelector('.ticker-move');
@@ -230,11 +247,13 @@ class HeaderAndBadgesStripCard extends LitElement {
     const startDrag = (e) => {
       this._dragState.isDragging = true;
       this._dragState.startX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
-      this._dragState.startScrollLeft = wrap.scrollLeft;
+      
+      // Capture current animation position
+      this._dragState.prevTranslate = this._getCurrentTransform(move);
+      this._dragState.currentTranslate = this._dragState.prevTranslate;
       
       // Pause animation
       clearTimeout(this._dragState.pauseTimeout);
-      this._dragState.isPaused = true;
       move.style.animationPlayState = 'paused';
       wrap.style.cursor = 'grabbing';
     };
@@ -244,8 +263,28 @@ class HeaderAndBadgesStripCard extends LitElement {
       e.preventDefault();
       
       const x = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
-      const walk = (x - this._dragState.startX) * 2;
-      wrap.scrollLeft = this._dragState.startScrollLeft - walk;
+      const walk = x - this._dragState.startX;
+      const newTranslate = this._dragState.prevTranslate + walk;
+      
+      // Calculate boundaries for continuous scroll
+      if (this._config.continuous_scroll) {
+        const contentWidth = move.scrollWidth / 2;
+        
+        // Limit dragging within reasonable bounds
+        const minTranslate = -contentWidth;
+        const maxTranslate = 0;
+        
+        this._dragState.currentTranslate = Math.max(minTranslate, Math.min(maxTranslate, newTranslate));
+      } else {
+        // For return animation, limit to content width
+        const maxScroll = move.scrollWidth - wrap.offsetWidth;
+        const minTranslate = -maxScroll;
+        const maxTranslate = 0;
+        
+        this._dragState.currentTranslate = Math.max(minTranslate, Math.min(maxTranslate, newTranslate));
+      }
+      
+      this._setTransform();
     };
 
     const endDrag = () => {
@@ -253,27 +292,49 @@ class HeaderAndBadgesStripCard extends LitElement {
       this._dragState.isDragging = false;
       wrap.style.cursor = 'grab';
       
+      // For continuous scroll, normalize position within loop
+      if (this._config.continuous_scroll) {
+        const contentWidth = move.scrollWidth / 2;
+        let normalized = this._dragState.currentTranslate % contentWidth;
+        
+        if (normalized > 0) normalized -= contentWidth;
+        
+        move.style.transform = `translate3d(${normalized}px, 0, 0)`;
+        this._dragState.prevTranslate = normalized;
+      }
+      
       // Resume after pause duration
       const pauseDuration = this._config.manual_pause_duration * 1000;
       clearTimeout(this._dragState.pauseTimeout);
       this._dragState.pauseTimeout = setTimeout(() => {
-        this._dragState.isPaused = false;
         move.style.animationPlayState = 'running';
       }, pauseDuration);
     };
 
     // Mouse events
     wrap.addEventListener('mousedown', startDrag);
-    wrap.addEventListener('mousemove', doDrag);
-    wrap.addEventListener('mouseup', endDrag);
-    wrap.addEventListener('mouseleave', endDrag);
+    document.addEventListener('mousemove', doDrag);
+    document.addEventListener('mouseup', endDrag);
 
     // Touch events
     wrap.addEventListener('touchstart', startDrag, { passive: true });
-    wrap.addEventListener('touchmove', doDrag, { passive: false });
-    wrap.addEventListener('touchend', endDrag);
+    document.addEventListener('touchmove', doDrag, { passive: false });
+    document.addEventListener('touchend', endDrag);
     
     wrap.style.cursor = 'grab';
+  }
+
+  _setTransform() {
+    const move = this.shadowRoot.querySelector('.ticker-move');
+    if (!move) return;
+    
+    if (this._dragState.animationFrameId) {
+      cancelAnimationFrame(this._dragState.animationFrameId);
+    }
+    
+    this._dragState.animationFrameId = requestAnimationFrame(() => {
+      move.style.transform = `translate3d(${this._dragState.currentTranslate}px, 0, 0)`;
+    });
   }
 
   _updateScroll() {
