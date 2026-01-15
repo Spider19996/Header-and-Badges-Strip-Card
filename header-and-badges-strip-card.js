@@ -411,15 +411,11 @@ class HeaderAndBadgesStripCard extends LitElement {
         ">
           ${this._config.title ? html`
             <div class="header" style="justify-content: ${this._config.title_alignment === 'center' ? 'center' : this._config.title_alignment === 'right' ? 'flex-end' : 'flex-start'};">
+              ${this._config.title_left_icon ? html`<ha-icon class="icon left" .icon=${this._config.title_left_icon} @click=${this._handleIconClick.bind(this, this._config.title_left_action)} 
+                style="--mdc-icon-size: ${this._config.title_left_icon_size}; cursor: ${this._config.title_left_action ? 'pointer' : 'default'};"></ha-icon>` : ''}
               <div class="title" .innerHTML=${this._parseMarkdown(this._config.title)}></div>
-              ${this._config.title_left_icon || this._config.title_right_icon ? html`
-                <div class="header-icons">
-                  ${this._config.title_left_icon ? html`<ha-icon class="icon left" .icon=${this._config.title_left_icon} @click=${this._handleIconClick.bind(this, this._config.title_left_action)} 
-                    style="--mdc-icon-size: ${this._config.title_left_icon_size}; cursor: ${this._config.title_left_action ? 'pointer' : 'default'};"></ha-icon>` : ''}
-                  ${this._config.title_right_icon ? html`<ha-icon class="icon right" .icon=${this._config.title_right_icon} @click=${this._handleIconClick.bind(this, this._config.title_right_action)}
-                    style="--mdc-icon-size: ${this._config.title_right_icon_size}; cursor: ${this._config.title_right_action ? 'pointer' : 'default'};"></ha-icon>` : ''}
-                </div>
-              ` : ''}
+              ${this._config.title_right_icon ? html`<ha-icon class="icon right" .icon=${this._config.title_right_icon} @click=${this._handleIconClick.bind(this, this._config.title_right_action)}
+                style="--mdc-icon-size: ${this._config.title_right_icon_size}; cursor: ${this._config.title_right_action ? 'pointer' : 'default'};"></ha-icon>` : ''}
             </div>
           ` : ''}
           <div class="ticker-wrap ${wrapClass}">
@@ -480,19 +476,29 @@ class HeaderAndBadgesStripCard extends LitElement {
     .title { flex: 0 1 auto; font-size: var(--title-font, 16px); min-width: 0; }
     .title p { margin: 0 0 0.5em 0; line-height: 1.4; }
     .title p:last-child { margin-bottom: 0; }
-    .header-icons { display: flex; align-items: center; gap: var(--title-spacing, 4px); flex-shrink: 0; }
     .header .icon { flex-shrink: 0; color: var(--primary-text-color); transition: color .2s; }
     .header .icon:hover { color: var(--primary-color); }
+    .header .icon.left { order: -1; margin-right: var(--title-spacing, 4px); }
+    .header .icon.right { order: 1; margin-left: var(--title-spacing, 4px); }
     
-    /* Mobile responsive layout: Titel oben, Icons nebeneinander darunter */
+    /* Mobile responsive layout */
     @media (max-width: 768px) {
       .header { 
-        flex-direction: column; 
-        align-items: flex-start !important; 
-        gap: 8px; 
+        flex-wrap: wrap;
       }
       .title { 
-        width: 100%; 
+        order: 1;
+        flex: 1 1 100%;
+        margin-bottom: 8px;
+      }
+      .header .icon.left { 
+        order: 2;
+        margin-right: var(--title-spacing, 4px);
+        margin-left: 0;
+      }
+      .header .icon.right { 
+        order: 3;
+        margin-left: 0;
       }
     }
     
