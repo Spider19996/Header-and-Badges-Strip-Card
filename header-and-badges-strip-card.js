@@ -472,7 +472,7 @@ class HeaderAndBadgesStripCard extends LitElement {
     .header-badges-wrapper.full-width ha-card { width: 100% !important; max-width: 100% !important; }
     ha-card { overflow: hidden; border-radius: var(--radius, 0); height: var(--height, auto); width: 100%; display: flex; flex-direction: column; }
     ha-card.custom-width { flex-shrink: 0; }
-    .header { font-size: 16px; font-weight: 400; color: var(--primary-text-color); display: flex; align-items: center; gap: 0; padding: 16px; }
+    .header { font-size: 16px; font-weight: 400; color: var(--primary-text-color); display: flex; align-items: center; gap: 0; padding: 16px; flex-wrap: wrap; }
     .title { flex: 0 1 auto; font-size: var(--title-font, 16px); min-width: 0; }
     .title p { margin: 0 0 0.5em 0; line-height: 1.4; }
     .title p:last-child { margin-bottom: 0; }
@@ -481,7 +481,7 @@ class HeaderAndBadgesStripCard extends LitElement {
     .header .icon.left { order: -1; margin-right: var(--title-spacing, 4px); }
     .header .icon.right { order: 1; margin-left: var(--title-spacing, 4px); }
     
-    /* Mobile responsive layout: Icons unter dem Titel bei kleinen Bildschirmen */
+    /* Mobile responsive layout: Icons nebeneinander unter dem Titel bei kleinen Bildschirmen */
     @media (max-width: 768px) {
       .header { 
         flex-direction: column; 
@@ -491,11 +491,18 @@ class HeaderAndBadgesStripCard extends LitElement {
       .header .icon.left, 
       .header .icon.right { 
         order: 2; 
-        margin: 0; 
+        margin: 0 4px 0 0; 
+      }
+      .header .icon.right {
+        margin: 0 0 0 0;
       }
       .title { 
         order: 1; 
         width: 100%; 
+      }
+      /* Container für Icons: nebeneinander */
+      .header .icon.left ~ .icon.right {
+        display: inline-flex;
       }
     }
     
