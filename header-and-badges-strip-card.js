@@ -3,7 +3,7 @@ const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
 console.info(
-  `%c HEADER AND BADGES STRIP CARD %c v4.0.6 `,
+  `%c HEADER AND BADGES STRIP CARD %c v4.0.7 `,
   "color: orange; font-weight: bold; background: black",
   "color: white; font-weight: bold; background: dimgray"
 );
@@ -58,6 +58,13 @@ class HeaderAndBadgesStripCard extends LitElement {
     this._scrollbarWidth = 0;
     this._sidebarResizeObserver = null;
     this._scrollbarResizeObserver = null;
+    this._dragState = {
+      isDragging: false,
+      startX: 0,
+      startScrollLeft: 0,
+      isPaused: false,
+      pauseTimeout: null
+    };
   }
 
   _getEntityId(e) {
@@ -90,6 +97,7 @@ class HeaderAndBadgesStripCard extends LitElement {
       scroll_direction: scroll.direction || 'left',
       continuous_scroll: scroll.continuous !== undefined ? scroll.continuous : true,
       pause_on_hover: scroll.pause_on_hover || false,
+      manual_pause_duration: scroll.manual_pause_duration || 5,
       pause_duration: scroll.pause_duration || 2,
       fading: scroll.fading || false,
       separator: appearance.separator || '•',
@@ -125,6 +133,7 @@ class HeaderAndBadgesStripCard extends LitElement {
     this._sidebarResizeObserver?.disconnect();
     this._scrollbarResizeObserver?.disconnect();
     clearTimeout(this._debounceTimer);
+    clearTimeout(this._dragState.pauseTimeout);
   }
 
   _setupSidebarObserver() {
@@ -163,7 +172,6 @@ class HeaderAndBadgesStripCard extends LitElement {
 
   _updateScrollbarWidth() {
     try {
-      // Berechne Scrollbar-Breite: Differenz zwischen window.innerWidth und clientWidth
       const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
       
       if (scrollbarWidth !== this._scrollbarWidth) {
@@ -196,7 +204,10 @@ class HeaderAndBadgesStripCard extends LitElement {
   }
 
   firstUpdated() {
-    setTimeout(() => this._updateScroll(), 0);
+    setTimeout(() => {
+      this._updateScroll();
+      this._setupDragHandlers();
+    }, 0);
     if (this._resizeObserver) {
       this.shadowRoot.querySelector('.ticker-wrap') && this._resizeObserver.observe(this.shadowRoot.querySelector('.ticker-wrap'));
       const container = this.closest('hui-view, .view, hui-sections-view');
@@ -209,6 +220,60 @@ class HeaderAndBadgesStripCard extends LitElement {
       this._cache.animation = null;
       requestAnimationFrame(() => this._updateScroll());
     }
+  }
+
+  _setupDragHandlers() {
+    const wrap = this.shadowRoot.querySelector('.ticker-wrap');
+    const move = this.shadowRoot.querySelector('.ticker-move');
+    if (!wrap || !move) return;
+
+    const startDrag = (e) => {
+      this._dragState.isDragging = true;
+      this._dragState.startX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+      this._dragState.startScrollLeft = wrap.scrollLeft;
+      
+      // Pause animation
+      clearTimeout(this._dragState.pauseTimeout);
+      this._dragState.isPaused = true;
+      move.style.animationPlayState = 'paused';
+      wrap.style.cursor = 'grabbing';
+    };
+
+    const doDrag = (e) => {
+      if (!this._dragState.isDragging) return;
+      e.preventDefault();
+      
+      const x = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+      const walk = (x - this._dragState.startX) * 2;
+      wrap.scrollLeft = this._dragState.startScrollLeft - walk;
+    };
+
+    const endDrag = () => {
+      if (!this._dragState.isDragging) return;
+      this._dragState.isDragging = false;
+      wrap.style.cursor = 'grab';
+      
+      // Resume after pause duration
+      const pauseDuration = this._config.manual_pause_duration * 1000;
+      clearTimeout(this._dragState.pauseTimeout);
+      this._dragState.pauseTimeout = setTimeout(() => {
+        this._dragState.isPaused = false;
+        move.style.animationPlayState = 'running';
+      }, pauseDuration);
+    };
+
+    // Mouse events
+    wrap.addEventListener('mousedown', startDrag);
+    wrap.addEventListener('mousemove', doDrag);
+    wrap.addEventListener('mouseup', endDrag);
+    wrap.addEventListener('mouseleave', endDrag);
+
+    // Touch events
+    wrap.addEventListener('touchstart', startDrag, { passive: true });
+    wrap.addEventListener('touchmove', doDrag, { passive: false });
+    wrap.addEventListener('touchend', endDrag);
+    
+    wrap.style.cursor = 'grab';
   }
 
   _updateScroll() {
@@ -481,7 +546,6 @@ class HeaderAndBadgesStripCard extends LitElement {
     .header .icon.left { order: -1; margin-right: var(--title-spacing, 4px); }
     .header .icon.right { order: 1; margin-left: var(--title-spacing, 4px); }
     
-    /* Mobile responsive layout */
     @media (max-width: 768px) {
       .header { 
         flex-wrap: wrap;
@@ -502,7 +566,7 @@ class HeaderAndBadgesStripCard extends LitElement {
       }
     }
     
-    .ticker-wrap { flex: 1; display: flex; align-items: center; width: 100%; overflow: hidden; background: var(--card-background-color, white); position: relative; min-height: 50px; }
+    .ticker-wrap { flex: 1; display: flex; align-items: center; width: 100%; overflow: hidden; background: var(--card-background-color, white); position: relative; min-height: 50px; user-select: none; }
     .ticker-wrap.chips { padding: 8px 0; min-height: auto; }
     .ticker-wrap.fading { -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%); mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%); }
     .ticker-wrap.pausable .ticker-move { animation-play-state: running; }
@@ -597,6 +661,7 @@ class HeaderAndBadgesStripCardEditor extends LitElement {
         ] : [
           { type: 'number', key: 'scroll.pause_duration', label: 'Pause-Dauer (Sek)', min: 0, step: 0.5, helper: 'Pause am Ende', value: scroll.pause_duration }
         ],
+        { type: 'number', key: 'scroll.manual_pause_duration', label: 'Manuelle Pause-Dauer (Sek)', min: 1, max: 30, step: 1, helper: 'Pause nach Finger/Maus-Verschiebung', value: scroll.manual_pause_duration },
         { type: 'switch', key: 'scroll.pause_on_hover', label: 'Bei Hover pausieren', value: scroll.pause_on_hover },
         { type: 'switch', key: 'scroll.fading', label: 'Fading', value: scroll.fading }
       ],
