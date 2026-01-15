@@ -480,6 +480,25 @@ class HeaderAndBadgesStripCard extends LitElement {
     .header .icon:hover { color: var(--primary-color); }
     .header .icon.left { order: -1; margin-right: var(--title-spacing, 4px); }
     .header .icon.right { order: 1; margin-left: var(--title-spacing, 4px); }
+    
+    /* Mobile responsive layout: Icons unter dem Titel bei kleinen Bildschirmen */
+    @media (max-width: 768px) {
+      .header { 
+        flex-direction: column; 
+        align-items: flex-start !important; 
+        gap: 8px; 
+      }
+      .header .icon.left, 
+      .header .icon.right { 
+        order: 2; 
+        margin: 0; 
+      }
+      .title { 
+        order: 1; 
+        width: 100%; 
+      }
+    }
+    
     .ticker-wrap { flex: 1; display: flex; align-items: center; width: 100%; overflow: hidden; background: var(--card-background-color, white); position: relative; min-height: 50px; }
     .ticker-wrap.chips { padding: 8px 0; min-height: auto; }
     .ticker-wrap.fading { -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%); mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%); }
